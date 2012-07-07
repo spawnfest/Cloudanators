@@ -168,3 +168,18 @@ handle references but I think it'll work itself out.
 
 Next step is to flesh out the request submission code and start getting to
 a place where I'm creating handles to pass back to Erlang.
+
+Sat 7/7 3:46 PM
+---------------
+
+The `euv_req_t` queuing and submission appears to be working. I've got
+requests pumping into the event queue. Next up is to be able to actually
+do something with those and insert them into the actual libuv event handling
+system.
+
+I'm going to start off with a basic `file_open` call which will require me
+to start sending resources back to Erlang as well as being able to provide
+them with new request submissions. Some of the boiler plate code is already
+written but its obviously not even been smoke tested yet.
+
+I should order some food. I'm thinking Jimmy John's.

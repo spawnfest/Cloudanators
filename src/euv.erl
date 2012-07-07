@@ -3,14 +3,18 @@
 
 -module(euv).
 
--export([foo/0]).
+-export([submit/3, submit/4]).
 
 -on_load(init/0).
 
 -define(NOT_LOADED, not_loaded(?LINE)).
 
 
-foo() ->
+submit(_Ref, _Args, _Opts) ->
+    ?NOT_LOADED.
+
+
+submit(_Ref, _Handle, _Args, _Opts) ->
     ?NOT_LOADED.
 
 

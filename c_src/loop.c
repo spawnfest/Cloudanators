@@ -1,6 +1,7 @@
 // This file is part of euv released under the MIT license.
 // See the LICENSE file for more information.
 
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -29,6 +30,41 @@ struct euv_loop_s {
 
 
 void* euv_loop_main(void* arg);
+
+
+euv_req_t*
+euv_req_init()
+{
+    euv_req_t* ret = (euv_req_t*) enif_alloc(sizeof(euv_req_t));
+    if(ret == NULL) goto error;
+
+    memset(ret, 0, sizeof(euv_req_t));
+
+    ret->env = enif_alloc_env();
+    if(ret->env == NULL) goto error;
+
+    return ret;
+
+error:
+    euv_req_destroy(ret);
+    return NULL;
+}
+
+
+void
+euv_req_destroy(euv_req_t* req)
+{
+    if(req == NULL) return;
+    if(req->env != NULL) enif_free_env(req->env);
+    enif_free(req);
+}
+
+
+void
+euv_handle_destroy(ErlNifEnv* env, void* obj)
+{
+    return;
+}
 
 
 euv_loop_t*
@@ -111,16 +147,44 @@ euv_loop_destroy(euv_loop_t* loop)
     enif_free(loop);
 }
 
+
+int
+euv_loop_is(euv_loop_t* loop, ErlNifEnv* env, ERL_NIF_TERM name)
+{
+    char buf[256];
+    if(!enif_get_atom(env, name, buf, 256, ERL_NIF_LATIN1))
+        return 0;
+    return strncmp(loop->name, buf, 256) == 0;
+}
+
+int
+euv_loop_notify(euv_loop_t* loop)
+{
+    assert(loop != NULL && "invalid loop");
+    assert(loop->wakeup != NULL && "invalid wakeup handle");
+    if(uv_async_send(loop->wakeup) != 0)
+        return 0;
+    return 1;
+}
+
+
+int
+euv_loop_queue(euv_loop_t* loop, euv_req_t* req)
+{
+    assert(loop != NULL && "invalid loop");
+    assert(loop->reqs != NULL && "invalid queue");
+    assert(req != NULL && "invalid request");
+    if(!euv_queue_push(loop->reqs, req))
+        return 0;
+    if(!euv_loop_notify(loop))
+        return 0;
+    return 1;
+}
+
+
 void
 euv_async_cb(uv_async_t* handle, int status)
 {
-    euv_loop_t* loop = (euv_loop_t*) handle->data;
-    void* req;
-
-    while(euv_queue_has_item(loop->reqs)) {
-        req = euv_queue_pop(loop->reqs);
-        // Handle request
-    }
 }
 
 
@@ -129,17 +193,14 @@ euv_loop_init_int(euv_loop_t* loop)
 {
     loop->uvl = uv_loop_new();
     if(loop->uvl == NULL) goto error;
-    fprintf(stderr, "MADE LOOP\r\n");
 
     // This allows us to wakeup the event loop to
     // manage new requests
     loop->wakeup = enif_alloc(sizeof(struct uv_async_s));
     if(loop->wakeup == NULL) goto error;
-    fprintf(stderr, "ALLOCED WAKEUP\r\n");
 
     loop->wakeup->data = (void*) loop;
     if(uv_async_init(loop->uvl, loop->wakeup, euv_async_cb) != 0) goto error;
-    fprintf(stderr, "INITED WAKEUP\r\n");
 
     return 1;
 
@@ -154,8 +215,7 @@ euv_loop_main(void* arg)
 {
     euv_loop_t* loop = (euv_loop_t*) arg;
     int ret = euv_loop_init_int(loop);
-
-    fprintf(stderr, "THREAD INITED %d\r\n", ret);
+    euv_req_t* req;
 
     enif_mutex_lock(loop->lock);
     loop->ready = ret ? 1 : -1;
@@ -164,10 +224,18 @@ euv_loop_main(void* arg)
 
     if(!ret) return NULL;
 
-    fprintf(stderr, "THREAD STARTING\r\n");
+    while(1) {
+        while(euv_queue_has_item(loop->reqs)) {
+            req = (euv_req_t*) euv_queue_pop(loop->reqs);
+            if(req == NULL)
+                break;
+            fprintf(stderr, "REQ: %p\r\n", req);
+            // Handle request
+        }
 
-    // Run until we're told to exit
-    uv_run(loop->uvl);
+        uv_run_once(loop->uvl);
+    }
+
     uv_loop_delete(loop->uvl);
 
     return NULL;
