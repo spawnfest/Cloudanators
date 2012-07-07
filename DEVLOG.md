@@ -73,3 +73,9 @@ correspond to a thread apiece) that can be specified when a file or socket
 is created. This obviously means that our first order of business will be
 to write the threading code around those loops with a queue to push
 requests over to the event loop.
+
+Fri 7/6 8:02 PM
+---------------
+
+Beer and smoke break. Also, I need to find some better tunes.
+
