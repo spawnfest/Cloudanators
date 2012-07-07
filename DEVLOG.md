@@ -93,3 +93,8 @@ Fri 7/6 9:55 PM
 ---------------
 
 The dog insists on playing. Gonna go throw a toy around for a bit.
+
+Fri 7/6 10:06 PM
+----------------
+
+Dog tired enough for now. Back to coding.
