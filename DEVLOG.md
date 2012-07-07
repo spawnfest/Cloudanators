@@ -110,3 +110,12 @@ their queues and what not. I've verified that loading the NIF results in
 having a running thread sitting in a libuv polling function.
 
 Next up will be basic functions for file handling.
+
+Sat 7/7 12:04 AM
+----------------
+
+After quietly reflecting while eating a piece of cold pizza and having another
+smoke I've decided that the best path forward to figuring out this libuv
+API is to just try and write a file:open/2 call. Also, I am very close to
+taking this dog on a walk to wear her out more. She's still insiting on
+me throwing the ball around.
