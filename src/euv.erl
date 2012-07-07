@@ -23,7 +23,11 @@ init() ->
         Path ->
             Path
     end,
-    erlang:load_nif(filename:join(PrivDir, "euv"), 0).
+    Opts = case application:get_all_env(?MODULE) of
+        [] -> [{loops, [default]}];
+        Else -> Else
+    end,
+    erlang:load_nif(filename:join(PrivDir, "euv"), Opts).
 
 
 not_loaded(Line) ->

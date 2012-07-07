@@ -98,3 +98,15 @@ Fri 7/6 10:06 PM
 ----------------
 
 Dog tired enough for now. Back to coding.
+
+Fri 7/6 11:14 PM
+----------------
+
+Dog wasn't quite tired enough and insisted on playing between my feet for
+awhile. Eventually I bribed her with a rawhide bone.
+
+In dev news though, I have the initial draft for starting event loops with
+their queues and what not. I've verified that loading the NIF results in
+having a running thread sitting in a libuv polling function.
+
+Next up will be basic functions for file handling.
