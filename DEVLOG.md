@@ -133,3 +133,22 @@ Sat 7/7 1:37 AM
 Walked for 2mi. That's a bit harder when its this hot out. Took a shower
 afterward and had another slice of cold pizza. Cracked another beer and I
 should be good to go for another few hours. Up next is that base file API.
+
+Sat 7/7 2:32 AM
+---------------
+
+Hit a bit of a brick wall design wise. Trying to figure out how to make this
+thing simple and still mesh with expected Erlang patterns. I'm running into
+some issues with matching NIF resource types with the single threaded-ness
+of libuv. Lots of questions on allocation and initialization procedures
+for what I assumed would be obvious resource types.
+
+I'm starting to lean towards a single resource type that specifies what
+callback functions are appropiate. Its hard to determine if that's going
+to be general enough to map out to the entire libuv API or if I'm going
+to paint myself into a corner.
+
+New plan: Go watch some "How I Met Your Mother" and have a few beers and
+then sleep on it. I think I'm quite close to cracking the general model for
+how to organize this but I want to be sure I'm not just throwing code at
+the wall to see what sticks.
