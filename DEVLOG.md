@@ -49,4 +49,27 @@ And... we're off.
 
 [file_handling]: https://github.com/erlang/otp/blob/maint/erts/preloaded/src/prim_file.erl#L1032-1044
 
+Fri 7/6 7:36 PM
+---------------
 
+First step is to fill out the project structure as well as pull libuv down
+and get it building. I'll just mimic what DizzyD does for eleveldb now.
+
+Bleeding edge deps are a love/hate relationship.
+
+Fri 7/6 7:55 PM
+---------------
+
+Initial project structure complete. The NIF builds and can be called form
+Erlang. Libuv is downloaded and built statically.
+
+Next step is to put together a bit more boiler plate code for the NIF
+initialization and then I'll start working on building the general
+structure for the event loop.
+
+I've been thinking about this over the last few days and the way I'm going
+to structure this NIF will be to have a configurable number of loops (which
+correspond to a thread apiece) that can be specified when a file or socket
+is created. This obviously means that our first order of business will be
+to write the threading code around those loops with a queue to push
+requests over to the event loop.
