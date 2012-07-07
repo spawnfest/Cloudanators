@@ -152,3 +152,19 @@ New plan: Go watch some "How I Met Your Mother" and have a few beers and
 then sleep on it. I think I'm quite close to cracking the general model for
 how to organize this but I want to be sure I'm not just throwing code at
 the wall to see what sticks.
+
+Sat 7/7 2:09 PM
+---------------
+
+Definitely slept longer than I had planned on. But I'd rather lose a little
+time than be trying to do this tired. Did manage to get some thinking done
+on how to structure this whole libuv interaction.
+
+The current plan is that each NIF function will create a `euv_req_t*` that
+will be submitted to the specified loop. The libuv thread will then
+handle the request and message pass the result back to the requesting
+`ErlNifPid`. I'm a bit uncertain on the exact logic surrounding the
+handle references but I think it'll work itself out.
+
+Next step is to flesh out the request submission code and start getting to
+a place where I'm creating handles to pass back to Erlang.
