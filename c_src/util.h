@@ -11,4 +11,4 @@ ERL_NIF_TERM euv_make_ok(ErlNifEnv* env, ERL_NIF_TERM value);
 ERL_NIF_TERM euv_make_error(ErlNifEnv* env, ERL_NIF_TERM value);
 ERL_NIF_TERM euv_make_error_str(ErlNifEnv* env, const char* reason);
 
-#endif // Included queue.h
+#endif // Included euv.h

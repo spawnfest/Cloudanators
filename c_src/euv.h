@@ -11,4 +11,4 @@ extern ERL_NIF_TERM ATOM_ERROR;
 extern ERL_NIF_TERM ATOM_LOOPS;
 extern ERL_NIF_TERM ATOM_DEFAULT;
 
-#endif // Included queue.h
+#endif // Included euv.h

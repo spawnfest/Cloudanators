@@ -11,4 +11,4 @@ typedef struct euv_loop_s euv_loop_t;
 euv_loop_t* euv_loop_init();
 void euv_loop_destroy(euv_loop_t* loop);
 
-#endif // Included queue.h
+#endif // Included loop.h
