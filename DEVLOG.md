@@ -191,3 +191,18 @@ On second though I'm going to start off a bit more easily with a function
 call that doesn't require the resources. One step at a time as they say.
 
 Also, I'm ordering Jimmy John's now cause I'm hungry.
+
+Sat 7/7 4:40 PM
+---------------
+
+Jimmy John's was delicious.
+
+I'm staring at this request loop trying to figure out how to match up
+request submissions to actual implementation code. About the only thing
+that I can think of is going to end up with me maintaining a list of
+ids by hand in Erlang and in C and making sure that they line up. Its
+not the best solution but I don't want to insert some sort of lookup
+in this tight loop if I can avoid it.
+
+I'm going to resign myself to the corresponding lists pattern that
+`prim_file` uses and just deal with it.
