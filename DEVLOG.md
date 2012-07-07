@@ -119,3 +119,10 @@ smoke I've decided that the best path forward to figuring out this libuv
 API is to just try and write a file:open/2 call. Also, I am very close to
 taking this dog on a walk to wear her out more. She's still insiting on
 me throwing the ball around.
+
+Sat 7/7 12:27 AM
+----------------
+
+Yep. Too hard to concentrate with the dog going to town on the squeaky toy.
+Headed out on a walk. Gonna try and get at least a basic open/read/write/close
+API implemented before bed.
