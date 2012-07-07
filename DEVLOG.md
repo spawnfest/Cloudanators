@@ -79,3 +79,13 @@ Fri 7/6 8:02 PM
 
 Beer and smoke break. Also, I need to find some better tunes.
 
+Fri 7/6 9:44 PM
+---------------
+
+Working on getting the initial threading for event loops sorted out.
+Apparently libuv depends on the Carbon framework. This is bad because if
+you don't initialize CarbonCore from the main thread it segfaults. I ended
+up hacking a local patch for libuv that disables this. Luckily someone had
+already written a patch for IOS to avoid this so I just used that and
+disabled the use of CarbonCore.
+

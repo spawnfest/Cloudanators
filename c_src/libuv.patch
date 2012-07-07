@@ -1,0 +1,39 @@
+diff --git a/src/unix/darwin.c b/src/unix/darwin.c
+index cb45db0..8b0ed43 100644
+--- a/src/unix/darwin.c
++++ b/src/unix/darwin.c
+@@ -30,10 +30,6 @@
+ 
+ #include <TargetConditionals.h>
+ 
+-#if !TARGET_OS_IPHONE
+-#include <CoreServices/CoreServices.h>
+-#endif
+-
+ #include <mach/mach.h>
+ #include <mach/mach_time.h>
+ #include <mach-o/dyld.h> /* _NSGetExecutablePath */
+@@ -43,7 +39,6 @@
+ 
+ static char *process_title;
+ 
+-#if TARGET_OS_IPHONE
+ /* see: http://developer.apple.com/library/mac/#qa/qa1398/_index.html */
+ uint64_t uv_hrtime() {
+     uint64_t time;
+@@ -60,15 +55,6 @@ uint64_t uv_hrtime() {
+ 
+     return enano;
+ }
+-#else
+-uint64_t uv_hrtime() {
+-  uint64_t time;
+-  Nanoseconds enano;
+-  time = mach_absolute_time(); 
+-  enano = AbsoluteToNanoseconds(*(AbsoluteTime *)&time);
+-  return (*(uint64_t *)&enano);
+-}
+-#endif
+ 
+ int uv_exepath(char* buffer, size_t* size) {
+   uint32_t usize;
