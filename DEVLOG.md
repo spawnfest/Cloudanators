@@ -126,3 +126,10 @@ Sat 7/7 12:27 AM
 Yep. Too hard to concentrate with the dog going to town on the squeaky toy.
 Headed out on a walk. Gonna try and get at least a basic open/read/write/close
 API implemented before bed.
+
+Sat 7/7 1:37 AM
+---------------
+
+Walked for 2mi. That's a bit harder when its this hot out. Took a shower
+afterward and had another slice of cold pizza. Cracked another beer and I
+should be good to go for another few hours. Up next is that base file API.
