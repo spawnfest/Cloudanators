@@ -89,3 +89,7 @@ up hacking a local patch for libuv that disables this. Luckily someone had
 already written a patch for IOS to avoid this so I just used that and
 disabled the use of CarbonCore.
 
+Fri 7/6 9:55 PM
+---------------
+
+The dog insists on playing. Gonna go throw a toy around for a bit.
