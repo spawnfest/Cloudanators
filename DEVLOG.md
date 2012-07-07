@@ -183,3 +183,11 @@ them with new request submissions. Some of the boiler plate code is already
 written but its obviously not even been smoke tested yet.
 
 I should order some food. I'm thinking Jimmy John's.
+
+Sat 7/7 3:51 PM
+---------------
+
+On second though I'm going to start off a bit more easily with a function
+call that doesn't require the resources. One step at a time as they say.
+
+Also, I'm ordering Jimmy John's now cause I'm hungry.
