@@ -256,3 +256,14 @@ and the docs aren't exactly clear on what I need to be freeing vs not.
 
 I'm going to just hit it with a hammer and allocate my own buffers for the
 time being so I can get to the point where this is working.
+
+Sun 7/8 1:50 AM
+---------------
+
+Moar RAWR. Its better allocating my own buffers but I'm hitting some sort
+of weird assertions in libuv itself now. Something weird is afoot and I
+can't quite put my finger on it. I'm guessing I can't see something dumb
+like an unitialized variable since I'm tired.
+
+The dog is entusiastically asking to go on a walk so I'm gonna take care
+of that and then come back and try and figure some more of this shit out.
