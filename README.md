@@ -18,3 +18,17 @@ references. Ie, its no better (and I think a tidge slower) than the builtin
 file module. If/when I figure out how to make that selective receive more
 efficient for messages generated from a NIF we can look into rebooting this
 project.
+
+Building and Testing
+--------------------
+
+Theoretically you should be able to build this on OS X by just running
+`make` in the top directory.
+
+The tests I was using are:
+
+    $ ./test/example-problem.es
+    $ ERL_FLAGS="-pa ebin" ./test/example-using-euv.es
+
+The fact that they both follow the same latency curves shows that
+my NIF isn't nearly as awesome as I had hoped it would be.
