@@ -21,6 +21,7 @@ _init_fs_handle(euv_loop_t* loop, euv_req_t* req)
     if(h == NULL)
         return 0;
 
+    assert(req->handle == NULL && "handle already set");
     req->handle = h;
 
     d = (uv_fs_t*) enif_alloc(sizeof(uv_fs_t));
