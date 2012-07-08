@@ -9,7 +9,7 @@
 #include "uv.h"
 
 typedef struct euv_loop_s euv_loop_t;
-typedef void (*handle_dtor_t) (void*);
+typedef void (*handle_dtor_t) (euv_loop_t*, void*);
 
 typedef enum {
     EUV_REQ_UNKNOWN = 0,

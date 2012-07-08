@@ -9,6 +9,7 @@
 extern ErlNifResourceType* HANDLE_RES;
 
 #define EUV_ATOM_TABLE_MAP(XX)              \
+    XX(APPEND,          "append")           \
     XX(ATIME,           "atime")            \
     XX(BADARG,          "badarg")           \
     XX(BLOCKS,          "blocks")           \
@@ -17,6 +18,8 @@ extern ErlNifResourceType* HANDLE_RES;
     XX(DEFAULT,         "default")          \
     XX(DEV,             "dev")              \
     XX(ERROR,           "error")            \
+    XX(EUVFILE,         "euvfile")          \
+    XX(EXCLUSIVE,       "exclusive")        \
     XX(FLAGS,           "flags")            \
     XX(GEN,             "gen")              \
     XX(GID,             "gid")              \
@@ -30,11 +33,14 @@ extern ErlNifResourceType* HANDLE_RES;
     XX(NLINK,           "nlink")            \
     XX(NOMEM,           "nomem")            \
     XX(OK,              "ok")               \
+    XX(OPTS,            "opts")             \
     XX(PATH,            "path")             \
+    XX(READ,            "read")             \
     XX(RDEV,            "rdev")             \
     XX(REQ,             "req")              \
     XX(SIZE,            "size")             \
-    XX(UID,             "uid")
+    XX(UID,             "uid")              \
+    XX(WRITE,           "write")
 
 #define EUV_ATOM_EXTERN(name, val) extern ERL_NIF_TERM EUV_ATOM_##name;
 EUV_ATOM_TABLE_MAP(EUV_ATOM_EXTERN)

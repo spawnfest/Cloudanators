@@ -12,9 +12,11 @@
 
 typedef struct euv_fs_s euv_fs_t;
 
-void euv_fs_dtor(void* obj);
+void euv_fs_dtor(euv_loop_t* loop, void* obj);
 
 
+void euv_fs_open(euv_loop_t* loop, euv_req_t* req);
+void euv_fs_close(euv_loop_t* loop, euv_req_t* req);
 void euv_fs_stat(euv_loop_t* loop, euv_req_t* req);
 void euv_fs_lstat(euv_loop_t* loop, euv_req_t* req);
 void euv_fs_utime(euv_loop_t* loop, euv_req_t* req);

@@ -235,3 +235,15 @@ Now that I have a few basic functions working I'm going to try and setup
 functions should allow me to handle this quite easily but I guess we'll
 see if I'm crazy or not.
 
+Sat 7/7 11:29 PM
+----------------
+
+Woot. I've got the initial code for opening and closing files written and
+it appears to be working. Granted I have absolutely no idea if I have horrible
+memory leaks in this code. I'm semi sure that I've got the ref counting done
+properly but its complex enough I'm not 100% sure. I'll have to suss that out
+more with testing when I get to that part.
+
+Next up are the read/write functions so we can actually start moving data
+in and out of this thing.
+

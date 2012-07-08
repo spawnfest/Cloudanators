@@ -12,27 +12,43 @@
 #include "util.h"
 
 
-static int
+struct euv_fs_s {
+    uv_fs_t     fsreq;
+    uv_file     fd;
+};
+
+
+static euv_fs_t*
 _init_fs_handle(euv_loop_t* loop, euv_req_t* req)
 {
-    euv_handle_t* h = euv_handle_init(loop, req);
-    uv_fs_t* d;
+    euv_handle_t* handle = euv_handle_init(loop, req);
+    euv_fs_t* data;
 
-    if(h == NULL)
-        return 0;
+    if(handle == NULL)
+        return NULL;
 
     assert(req->handle == NULL && "handle already set");
-    req->handle = h;
+    req->handle = handle;
 
-    d = (uv_fs_t*) enif_alloc(sizeof(uv_fs_t));
-    if(d == NULL)
-        return 0;
+    data = (euv_fs_t*) enif_alloc(sizeof(euv_fs_t));
+    if(data == NULL)
+        return NULL;
 
-    d->data = req;
-    h->data = d;
-    h->dtor = euv_fs_dtor;
+    data->fsreq.data = req;
+    data->fd = 0;
+    handle->data = data;
+    handle->dtor = euv_fs_dtor;
 
-    return 1;
+    return data;
+}
+
+
+static euv_fs_t*
+_get_fs_handle(euv_req_t* req)
+{
+    assert(req->handle != NULL && "invalid request handle");
+    assert(req->handle->data != NULL && "invalid requeset handle data");
+    return (euv_fs_t*) req->handle->data;
 }
 
 
@@ -70,10 +86,132 @@ _kv_add(euv_req_t* req, ERL_NIF_TERM k, int64_t v, ERL_NIF_TERM l)
 
 
 void
-euv_fs_dtor(void* obj)
+euv_fs_dtor(euv_loop_t* loop, void* obj)
 {
-    uv_fs_t* req = (uv_fs_t*) obj;
-    enif_free(req);
+    euv_fs_t* data = (euv_fs_t*) obj;
+    if(data->fd > 0) {
+        uv_fs_close(euv_loop_uvl(loop), &data->fsreq, data->fd, NULL);
+    }
+    uv_fs_req_cleanup(&data->fsreq);
+    enif_free(data);
+}
+
+
+int
+euv_fs_open_flags(euv_req_t* req)
+{
+    ERL_NIF_TERM opts;
+    ERL_NIF_TERM opt;
+    int ret = 0;
+
+    if(!euv_pl_lookup(req->env, req->args, EUV_ATOM_OPTS, &opts))
+        return ret;
+
+    while(enif_get_list_cell(req->env, opts, &opt, &opts)) {
+        if(enif_compare(opt, EUV_ATOM_READ) == 0)
+            ret |= O_RDONLY;
+        else if(enif_compare(opt, EUV_ATOM_WRITE) == 0)
+            ret |= O_WRONLY;
+        else if(enif_compare(opt, EUV_ATOM_APPEND) == 0)
+            ret |= O_APPEND;
+        else if(enif_compare(opt, EUV_ATOM_EXCLUSIVE) == 0)
+            ret |= O_EXCL;
+    }
+
+    if(ret == 0)
+        return O_RDONLY;
+
+    if((ret & O_WRONLY) && !(ret & O_RDONLY))
+        ret |= O_TRUNC;
+
+    return ret;
+}
+
+
+void
+euv_fs_open_cb(uv_fs_t* fsreq)
+{
+    euv_req_t* req = (euv_req_t*) fsreq->data;
+    euv_fs_t* data = (euv_fs_t*) req->handle->data;
+    ERL_NIF_TERM resp;
+
+    if(fsreq->result > 0) {
+        data->fd = (uv_file) fsreq->result;
+        resp = enif_make_resource(req->env, req->handle);
+        resp = enif_make_tuple2(req->env, EUV_ATOM_EUVFILE, resp);
+        resp = euv_make_ok(req->env, resp);
+    } else {
+        resp = euv_req_errno(req, fsreq->errorno);
+    }
+
+    uv_fs_req_cleanup(fsreq);
+    euv_req_resp(req, resp);
+}
+
+
+void
+euv_fs_open(euv_loop_t* loop, euv_req_t* req)
+{
+    euv_fs_t* data = _init_fs_handle(loop, req);
+    int flags = euv_fs_open_flags(req);
+    int mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+    char* path = NULL;
+
+    if(data == NULL) {
+        euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
+        goto done;
+    }
+
+    path = _get_path(req);
+    if(path == NULL) {
+        euv_req_resp_error(req, EUV_ATOM_INVALID_REQ);
+        goto done;
+    }
+
+    if(uv_fs_open(
+                euv_loop_uvl(loop),
+                &data->fsreq,
+                path,
+                flags,
+                mode,
+                euv_fs_open_cb
+            ) != 0)
+        euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
+
+done:
+    if(path != NULL) enif_free(path);
+    return;
+}
+
+
+void
+euv_fs_close_cb(uv_fs_t* fsreq)
+{
+    euv_req_t* req = (euv_req_t*) fsreq->data;
+    ERL_NIF_TERM resp;
+
+    if(fsreq->result == 0) {
+        resp = EUV_ATOM_OK;
+    } else {
+        resp = euv_req_errno(req, fsreq->errorno);
+    }
+
+    uv_fs_req_cleanup(fsreq);
+    euv_req_resp(req, resp);
+}
+
+
+void
+euv_fs_close(euv_loop_t* loop, euv_req_t* req)
+{
+    euv_fs_t* data = _get_fs_handle(req);
+    if(uv_fs_close(
+                euv_loop_uvl(loop),
+                &data->fsreq,
+                data->fd,
+                euv_fs_close_cb
+            ) != 0)
+        euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
 }
 
 
@@ -125,9 +263,10 @@ euv_fs_stat_cb(uv_fs_t* fsreq)
 void
 euv_fs_stat(euv_loop_t* loop, euv_req_t* req)
 {
+    euv_fs_t* data = _init_fs_handle(loop, req);
     char* path = NULL;
 
-    if(!_init_fs_handle(loop, req)) {
+    if(data == NULL) {
         euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
         goto done;
     }
@@ -138,8 +277,7 @@ euv_fs_stat(euv_loop_t* loop, euv_req_t* req)
         goto done;
     }
 
-    if(uv_fs_stat(euv_loop_uvl(loop),
-                req->handle->data, path, euv_fs_stat_cb) != 0)
+    if(uv_fs_stat(euv_loop_uvl(loop), &data->fsreq, path, euv_fs_stat_cb) != 0)
         euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
 
 done:
@@ -150,9 +288,10 @@ done:
 void
 euv_fs_lstat(euv_loop_t* loop, euv_req_t* req)
 {
+    euv_fs_t* data = _init_fs_handle(loop, req);
     char* path = NULL;
 
-    if(!_init_fs_handle(loop, req)) {
+    if(data == NULL) {
         euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
         goto done;
     }
@@ -163,8 +302,7 @@ euv_fs_lstat(euv_loop_t* loop, euv_req_t* req)
         goto done;
     }
 
-    if(uv_fs_lstat(euv_loop_uvl(loop),
-                req->handle->data, path, euv_fs_stat_cb) != 0)
+    if(uv_fs_lstat(euv_loop_uvl(loop), &data->fsreq, path, euv_fs_stat_cb) != 0)
         euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
 
 done:
@@ -192,12 +330,13 @@ euv_fs_utime_cb(uv_fs_t* fsreq)
 void
 euv_fs_utime(euv_loop_t* loop, euv_req_t* req)
 {
+    euv_fs_t* data = _init_fs_handle(loop, req);
     ERL_NIF_TERM opt;
     char* path = NULL;
     double atime;
     double mtime;
 
-    if(!_init_fs_handle(loop, req)) {
+    if(data == NULL) {
         euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
         goto done;
     }
@@ -228,8 +367,14 @@ euv_fs_utime(euv_loop_t* loop, euv_req_t* req)
         goto done;
     }
 
-    if(uv_fs_utime(euv_loop_uvl(loop),
-                req->handle->data, path, atime, mtime, euv_fs_utime_cb) != 0)
+    if(uv_fs_utime(
+                euv_loop_uvl(loop),
+                &data->fsreq,
+                path,
+                atime,
+                mtime,
+                euv_fs_utime_cb
+            ) != 0)
         euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
 
 done:

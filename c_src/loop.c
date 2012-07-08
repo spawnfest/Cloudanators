@@ -159,7 +159,8 @@ error:
 void
 euv_handle_destroy(ErlNifEnv* env, void* obj)
 {
-    return;
+    euv_handle_t* handle = (euv_handle_t*) obj;
+    handle->dtor(handle->loop, handle->data);
 }
 
 
@@ -290,6 +291,14 @@ void
 euv_loop_handle(euv_loop_t* loop, euv_req_t* req)
 {
     switch(req->type) {
+
+        case EUV_REQ_FS_OPEN:
+            euv_fs_open(loop, req);
+            return;
+
+        case EUV_REQ_FS_CLOSE:
+            euv_fs_close(loop, req);
+            return;
 
         case EUV_REQ_FS_STAT:
             euv_fs_stat(loop, req);

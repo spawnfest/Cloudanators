@@ -114,6 +114,26 @@ euv_st_destroy(euv_st* st)
 }
 
 
+static euv_handle_t*
+euv_open_res(ErlNifEnv* env, ERL_NIF_TERM val)
+{
+    euv_handle_t* res;
+    const ERL_NIF_TERM* tuple;
+    int arity;
+
+    if(!enif_get_tuple(env, val, &arity, &tuple))
+        return NULL;
+    if(arity != 2)
+        return NULL;
+    if(enif_compare(tuple[0], EUV_ATOM_EUVFILE) != 0)
+        return NULL;
+    if(!enif_get_resource(env, tuple[1], HANDLE_RES, (void**) &res))
+        return NULL;
+
+    return res;
+}
+
+
 static int
 euv_load(ErlNifEnv* env, void** priv, ERL_NIF_TERM opts)
 {
@@ -175,7 +195,6 @@ euv_unload(ErlNifEnv* env, void* priv)
 static ERL_NIF_TERM
 euv_submit(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    euv_handle_t* res;
     euv_loop_t* loop = NULL;
     ERL_NIF_TERM opt;
     ERL_NIF_TERM opts;
@@ -198,14 +217,14 @@ euv_submit(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     } else if(argc == 4) {
         if(!enif_is_ref(env, argv[0]))
             goto error;
-        if(!enif_get_resource(env, argv[1], HANDLE_RES, (void**) &res))
-            goto error;
         if(!enif_is_list(env, argv[2]))
             goto error;
         if(!enif_is_list(env, argv[3]))
             goto error;
         req->ref = enif_make_copy(req->env, argv[0]);
-        req->handle = res;
+        req->handle = euv_open_res(env, argv[1]);
+        if(req->handle == NULL)
+            goto error;
         req->args = enif_make_copy(req->env, argv[2]);
         opts = argv[3];
     } else {
