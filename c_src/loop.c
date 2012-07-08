@@ -59,7 +59,9 @@ euv_req_destroy(euv_req_t* req)
 {
     if(req == NULL) return;
     if(req->env != NULL) enif_free_env(req->env);
-    if(req->handle != NULL) enif_release_resource(req->handle);
+    if(req->handle != NULL) {
+        enif_release_resource(req->handle);
+    }
     enif_free(req);
 }
 
@@ -150,8 +152,9 @@ euv_handle_init(euv_loop_t* loop, euv_req_t* req)
     return ret;
 
 error:
-    if(ret != NULL)
+    if(ret != NULL) {
         enif_release_resource(ret);
+    }
     return NULL;
 }
 
@@ -234,6 +237,11 @@ euv_loop_destroy(euv_loop_t* loop)
 {
     void* resp;
 
+    if(!euv_queue_push(loop->reqs, NULL))
+        return;
+    if(!euv_loop_notify(loop))
+        return;
+
     // Send shutdown message to thread
     enif_thread_join(loop->tid, &resp);
 
@@ -300,6 +308,13 @@ euv_loop_handle(euv_loop_t* loop, euv_req_t* req)
             euv_fs_close(loop, req);
             return;
 
+        case EUV_REQ_FS_READ:
+            euv_fs_read(loop, req);
+            return;
+
+        case EUV_REQ_FS_WRITE:
+            euv_fs_write(loop, req);
+
         case EUV_REQ_FS_STAT:
             euv_fs_stat(loop, req);
             return;
@@ -360,19 +375,21 @@ euv_loop_main(void* arg)
     enif_cond_signal(loop->cond);
     enif_mutex_unlock(loop->lock);
 
-    if(!ret) return NULL;
+    if(!ret)
+        return NULL;
 
     while(1) {
         while(euv_queue_has_item(loop->reqs)) {
             req = (euv_req_t*) euv_queue_pop(loop->reqs);
             if(req == NULL)
-                break;
+                goto done;
             euv_loop_handle(loop, req);
         }
 
         uv_run_once(loop->uvl);
     }
 
+done:
     uv_loop_delete(loop->uvl);
 
     return NULL;

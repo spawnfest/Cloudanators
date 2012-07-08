@@ -13,8 +13,9 @@
 
 
 struct euv_fs_s {
-    uv_fs_t     fsreq;
-    uv_file     fd;
+    uv_fs_t         fsreq;
+    uv_file         fd;
+    char*           buf;
 };
 
 
@@ -33,6 +34,7 @@ _init_fs_handle(euv_loop_t* loop, euv_req_t* req)
     data = (euv_fs_t*) enif_alloc(sizeof(euv_fs_t));
     if(data == NULL)
         return NULL;
+    memset(data, 0, sizeof(euv_fs_t));
 
     data->fsreq.data = req;
     data->fd = 0;
@@ -46,9 +48,12 @@ _init_fs_handle(euv_loop_t* loop, euv_req_t* req)
 static euv_fs_t*
 _get_fs_handle(euv_req_t* req)
 {
+    euv_fs_t* data;
     assert(req->handle != NULL && "invalid request handle");
     assert(req->handle->data != NULL && "invalid requeset handle data");
-    return (euv_fs_t*) req->handle->data;
+    data = (euv_fs_t*) req->handle->data;
+    data->fsreq.data = req;
+    return data;
 }
 
 
@@ -89,10 +94,11 @@ void
 euv_fs_dtor(euv_loop_t* loop, void* obj)
 {
     euv_fs_t* data = (euv_fs_t*) obj;
-    if(data->fd > 0) {
+    if(data->fd > 0)
         uv_fs_close(euv_loop_uvl(loop), &data->fsreq, data->fd, NULL);
-    }
     uv_fs_req_cleanup(&data->fsreq);
+    if(data->buf != NULL)
+        enif_free(data->buf);
     enif_free(data);
 }
 
@@ -137,6 +143,7 @@ euv_fs_open_cb(uv_fs_t* fsreq)
 
     if(fsreq->result > 0) {
         data->fd = (uv_file) fsreq->result;
+        //enif_keep_resource(req->handle);
         resp = enif_make_resource(req->env, req->handle);
         resp = enif_make_tuple2(req->env, EUV_ATOM_EUVFILE, resp);
         resp = euv_make_ok(req->env, resp);
@@ -212,6 +219,95 @@ euv_fs_close(euv_loop_t* loop, euv_req_t* req)
                 euv_fs_close_cb
             ) != 0)
         euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
+}
+
+
+void
+euv_fs_read_cb(uv_fs_t* fsreq)
+{
+    euv_req_t* req = (euv_req_t*) fsreq->data;
+    euv_fs_t* data = (euv_fs_t*) req->handle->data;
+    ErlNifBinary bin;
+    ERL_NIF_TERM resp;
+
+    if(fsreq->result == 0) {
+        resp = EUV_ATOM_EOF;
+    } else if(fsreq->result > 0) {
+        if(!enif_alloc_binary(fsreq->result, &bin)) {
+            resp = euv_make_error(req->env, EUV_ATOM_NOMEM);
+        } else {
+            memcpy(bin.data, data->buf, bin.size);
+            resp = enif_make_binary(req->env, &bin);
+            resp = euv_make_ok(req->env, resp);
+        }
+    } else {
+        resp = euv_req_errno(req, fsreq->errorno);
+    }
+    enif_free(data->buf);
+    data->buf = NULL;
+
+    uv_fs_req_cleanup(fsreq);
+    euv_req_resp(req, resp);
+}
+
+
+void
+euv_fs_read(euv_loop_t* loop, euv_req_t* req)
+{
+    euv_fs_t* data = _get_fs_handle(req);
+    ERL_NIF_TERM opt;
+    size_t len = 0;
+    int64_t offset;
+
+    assert(data->buf == NULL && "stale buffer allocated");
+
+    if(!euv_pl_lookup(req->env, req->args, EUV_ATOM_LENGTH, &opt)) {
+        euv_req_resp_error(req, EUV_ATOM_INVALID_REQ);
+        return;
+    }
+
+    if(!enif_get_uint64(req->env, opt, &len)) {
+        euv_req_resp_error(req, EUV_ATOM_BADARG);
+        return;
+    }
+
+    if(!euv_pl_lookup(req->env, req->args, EUV_ATOM_OFFSET, &opt)) {
+        offset = -1;
+    } else if(!enif_get_int64(req->env, opt, (ErlNifSInt64*) &offset)) {
+        euv_req_resp_error(req, EUV_ATOM_BADARG);
+        return;
+    }
+
+    data->buf = (char*) enif_alloc(len);
+    if(data->buf == NULL) {
+        euv_req_resp_error(req, EUV_ATOM_NOMEM);
+        return;
+    }
+
+    if(uv_fs_read(
+                euv_loop_uvl(loop),
+                &data->fsreq,
+                data->fd,
+                data->buf,
+                len,
+                offset,
+                euv_fs_read_cb
+            ) != 0)
+        euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
+}
+
+
+void
+euv_fs_write_cb(uv_fs_t* fsreq)
+{
+
+}
+
+
+void
+euv_fs_write(euv_loop_t* loop, euv_req_t* req)
+{
+
 }
 
 

@@ -17,6 +17,7 @@ extern ErlNifResourceType* HANDLE_RES;
     XX(CTIME,           "ctime")            \
     XX(DEFAULT,         "default")          \
     XX(DEV,             "dev")              \
+    XX(EOF,             "eof")              \
     XX(ERROR,           "error")            \
     XX(EUVFILE,         "euvfile")          \
     XX(EXCLUSIVE,       "exclusive")        \
@@ -26,12 +27,14 @@ extern ErlNifResourceType* HANDLE_RES;
     XX(INO,             "ino")              \
     XX(INTERNAL_ERROR,  "internal_error")   \
     XX(INVALID_REQ,     "invalid_req")      \
+    XX(LENGTH,          "length")           \
     XX(LOOP,            "loop")             \
     XX(LOOPS,           "loops")            \
     XX(MODE,            "mode")             \
     XX(MTIME,           "mtime")            \
     XX(NLINK,           "nlink")            \
     XX(NOMEM,           "nomem")            \
+    XX(OFFSET,          "offset")           \
     XX(OK,              "ok")               \
     XX(OPTS,            "opts")             \
     XX(PATH,            "path")             \

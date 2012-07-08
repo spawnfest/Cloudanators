@@ -16,6 +16,8 @@ typedef enum {
 
     EUV_REQ_FS_OPEN,
     EUV_REQ_FS_CLOSE,
+    EUV_REQ_FS_READ,
+    EUV_REQ_FS_WRITE,
     EUV_REQ_FS_STAT,
     EUV_REQ_FS_LSTAT,
     EUV_REQ_FS_UTIME,

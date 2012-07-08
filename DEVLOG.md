@@ -293,3 +293,9 @@ Sun 7/9 3:22 AM
 Turns out that the `uv_fs_t` struct occasionally clears its data member which
 was causing havoc. Simple fix to just set that each time I get it back after
 clearing it.
+
+Sun 7/9 3:35 AM
+---------------
+
+Check pointing my work and I'm going to retry the `ErlNifBinary` usage in
+`euv_fs_t` to avoid that unnecessary `memcpy`. Wish me luck.

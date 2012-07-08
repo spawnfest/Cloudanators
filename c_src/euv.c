@@ -117,7 +117,7 @@ euv_st_destroy(euv_st* st)
 static euv_handle_t*
 euv_open_res(ErlNifEnv* env, ERL_NIF_TERM val)
 {
-    euv_handle_t* res;
+    euv_handle_t* res = NULL;
     const ERL_NIF_TERM* tuple;
     int arity;
 
@@ -225,6 +225,7 @@ euv_submit(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         req->handle = euv_open_res(env, argv[1]);
         if(req->handle == NULL)
             goto error;
+        enif_keep_resource(req->handle);
         req->args = enif_make_copy(req->env, argv[2]);
         opts = argv[3];
     } else {
