@@ -295,6 +295,14 @@ euv_loop_handle(euv_loop_t* loop, euv_req_t* req)
             euv_fs_stat(loop, req);
             return;
 
+        case EUV_REQ_FS_LSTAT:
+            euv_fs_lstat(loop, req);
+            return;
+
+        case EUV_REQ_FS_UTIME:
+            euv_fs_utime(loop, req);
+            return;
+
         default:
             fprintf(stderr, "INVALID REQ TYPE\r\n");
             euv_req_resp_error(req, EUV_ATOM_INVALID_REQ);

@@ -13,9 +13,13 @@ typedef void (*handle_dtor_t) (void*);
 
 typedef enum {
     EUV_REQ_UNKNOWN = 0,
+
     EUV_REQ_FS_OPEN,
     EUV_REQ_FS_CLOSE,
     EUV_REQ_FS_STAT,
+    EUV_REQ_FS_LSTAT,
+    EUV_REQ_FS_UTIME,
+
     EUV_REQ_MAX
 } euv_req_type;
 

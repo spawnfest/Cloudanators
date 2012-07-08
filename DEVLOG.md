@@ -215,3 +215,10 @@ be. I have managed to get a stat function returning data but for the last
 hour or so I've been debugging why it appears to fail on the first call
 everytime the VM starts. I'm going to write a wrapper for utime and then
 we'll see what happens there.
+
+Sat 7/7 9:05 PM
+---------------
+
+I've got a `lstat` and `utime` written and they're showing the same behavior.
+I can't decide if I should just plow ahead and ignore it for now or sit down
+and write a small test case for libuv.
