@@ -328,3 +328,17 @@ receive optimization is disabled somehow. Or perhaps I don't understand
 the specifics?
 
 More follow up tomorrow.
+
+Sun 7/9 5:11 PM
+---------------
+
+Well, it doesn't look like I'm going to make it in under the wire. After
+a work emergency I started working on a small NIF test case that appears
+to reproduce the issue (namely, the optimization for a ref in a receive
+doesn't apply to messages sent by NIFs).
+
+So given that I'm currently wading through emulator code to try and find the
+specifics on where this is actually implemented to see what I might be
+doing that prevents this optimization from kicking in. I'm starting
+to wonder if it has to do with the term copy between environments in
+the NIF before I can send the message.
