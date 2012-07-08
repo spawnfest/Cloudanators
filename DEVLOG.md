@@ -267,3 +267,14 @@ like an unitialized variable since I'm tired.
 
 The dog is entusiastically asking to go on a walk so I'm gonna take care
 of that and then come back and try and figure some more of this shit out.
+
+Sun 7/9 2:40 AM
+---------------
+
+Back from the dog walk. It was almost pleasant tonight. Starting to cool off
+considerably.
+
+I'm still not entirely groking what the issue is that I'm having. I'm starting
+to play with `init:restart/0` in the shell and running into issues. I'll
+track that down and see if I can't figure out what's wrong with my
+resource reference counting.
