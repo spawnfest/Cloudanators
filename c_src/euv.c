@@ -7,14 +7,9 @@
 
 #include "erl_nif.h"
 
+#include "euv.h"
 #include "loop.h"
 #include "util.h"
-
-
-#define ATOM(name, value)                       \
-do {                                            \
-    ATOM_##name = euv_make_atom(env, value);    \
-} while(0)
 
 
 typedef struct {
@@ -23,14 +18,21 @@ typedef struct {
 } euv_st;
 
 
-static ErlNifResourceType* HANDLE_RES;
+ErlNifResourceType* HANDLE_RES;
 
 
-ERL_NIF_TERM ATOM_OK;
-ERL_NIF_TERM ATOM_ERROR;
-ERL_NIF_TERM ATOM_LOOP;
-ERL_NIF_TERM ATOM_LOOPS;
-ERL_NIF_TERM ATOM_DEFAULT;
+#define EUV_ATOM_DECL(name, val) ERL_NIF_TERM EUV_ATOM_##name;
+EUV_ATOM_TABLE_MAP(EUV_ATOM_DECL)
+#undef EUV_ATOM_DECL
+
+
+#define EUV_ATOM_INST(name, val) EUV_ATOM_##name = euv_make_atom(env, val);
+static void
+euv_init_atoms(ErlNifEnv* env)
+{
+    EUV_ATOM_TABLE_MAP(EUV_ATOM_INST);
+}
+#undef EUV_ATOM_INST
 
 
 static int
@@ -116,34 +118,25 @@ static int
 euv_load(ErlNifEnv* env, void** priv, ERL_NIF_TERM opts)
 {
     ERL_NIF_TERM opt;
-    const ERL_NIF_TERM* tuple;
-    int arity;
 
     euv_st* st = (euv_st*) enif_alloc(sizeof(euv_st));
     if(st == NULL) goto error;
 
     memset(st, 0, sizeof(euv_st));
 
+    euv_init_atoms(env);
+
     if(!euv_init_resources(env))
         return 1;
-
-    ATOM(OK, "ok");
-    ATOM(ERROR, "error");
-    ATOM(LOOP, "loop");
-    ATOM(LOOPS, "loops");
-    ATOM(DEFAULT, "default");
 
     if(!enif_is_list(env, opts))
         return 1;
 
-    while(enif_get_list_cell(env, opts, &opt, &opts)) {
-        if(!enif_get_tuple(env, opt, &arity, &tuple)) goto error;
-        if(arity != 2) goto error;
-
-        if(enif_compare(ATOM_LOOPS, tuple[0]) == 0) {
-            if(!euv_init_loops(env, tuple[1], st)) goto error;
-        }
-        // Ignore unknown options
+    if(euv_pl_lookup(env, opts, EUV_ATOM_LOOPS, &opt)) {
+        if(!euv_init_loops(env, opt, st))
+            goto error;
+    } else {
+        goto error;
     }
 
     *priv = (void*) st;
@@ -184,12 +177,10 @@ euv_submit(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     euv_handle_t* res;
     euv_loop_t* loop = NULL;
-    ERL_NIF_TERM opts;
     ERL_NIF_TERM opt;
+    ERL_NIF_TERM opts;
     ERL_NIF_TERM p1;
     ERL_NIF_TERM p2;
-    const ERL_NIF_TERM* tuple;
-    int arity;
     euv_req_t* req = euv_req_init();
 
     enif_self(env, &req->pid);
@@ -224,21 +215,12 @@ euv_submit(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     // Find the loop to use when we don't have
     // a handle.
     if(req->handle == NULL) {
-        while(enif_get_list_cell(env, opts, &opt, &opts)) {
-            if(!enif_get_tuple(env, opt, &arity, &tuple))
-                goto error;
-            if(arity != 2)
-                goto error;
-            if(enif_compare(ATOM_LOOP, tuple[0]) == 0) {
-                loop = euv_find_loop(env, tuple[1]);
-                if(loop == NULL)
-                    goto error;
-            }
+        if(euv_pl_lookup(env, opts, EUV_ATOM_LOOP, &opt)) {
+            loop = euv_find_loop(env, opt);
+        } else {
+            // No loop specified, choose the default
+            loop = euv_find_loop(env, EUV_ATOM_DEFAULT);
         }
-        // Pick a default loop if the user didn't
-        // specify one.
-        if(loop == NULL)
-            loop = euv_find_loop(env, ATOM_DEFAULT);
     } else {
         loop = req->handle->loop;
         p1 = enif_make_pid(env, &(req->pid));
@@ -247,10 +229,14 @@ euv_submit(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
             goto error;
     }
 
+    req->type = euv_req_get_type(env, opts);
+    if(req->type == EUV_REQ_UNKNOWN)
+        goto error;
+
     if(!euv_loop_queue(loop, req))
         goto error;
 
-    return ATOM_OK;
+    return EUV_ATOM_OK;
 
 error:
     euv_req_destroy(req);

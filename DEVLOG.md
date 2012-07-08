@@ -206,3 +206,12 @@ in this tight loop if I can avoid it.
 
 I'm going to resign myself to the corresponding lists pattern that
 `prim_file` uses and just deal with it.
+
+Sat 7/7 8:19 PM
+---------------
+
+Well I sure as shit haven't been making progress as fast as I thougth I would
+be. I have managed to get a stat function returning data but for the last
+hour or so I've been debugging why it appears to fail on the first call
+everytime the VM starts. I'm going to write a wrapper for utime and then
+we'll see what happens there.

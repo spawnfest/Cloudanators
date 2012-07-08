@@ -3,11 +3,28 @@
 
 -module(euv).
 
--export([submit/3, submit/4]).
+-export([
+    call/2,
+    call/3,
+    submit/3,
+    submit/4
+]).
 
 -on_load(init/0).
 
 -define(NOT_LOADED, not_loaded(?LINE)).
+
+
+call(Args, Opts) ->
+    Ref = make_ref(),
+    ok = submit(Ref, Args, Opts),
+    receive {Ref, Resp} -> Resp end.
+
+
+call(Handle, Args, Opts) ->
+    Ref = make_ref(),
+    ok = submit(Ref, Handle, Args, Opts),
+    receive {Ref, Resp} -> Resp end.
 
 
 submit(_Ref, _Args, _Opts) ->

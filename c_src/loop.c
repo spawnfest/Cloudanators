@@ -8,8 +8,11 @@
 #include "erl_nif.h"
 #include "uv.h"
 
+#include "euv.h"
+#include "fs.h"
 #include "loop.h"
 #include "queue.h"
+#include "util.h"
 
 
 struct euv_loop_s {
@@ -56,7 +59,100 @@ euv_req_destroy(euv_req_t* req)
 {
     if(req == NULL) return;
     if(req->env != NULL) enif_free_env(req->env);
+    if(req->handle != NULL) enif_release_resource(req->handle);
     enif_free(req);
+}
+
+
+euv_req_type
+euv_req_get_type(ErlNifEnv* env, ERL_NIF_TERM opts)
+{
+    ERL_NIF_TERM opt;
+    const ERL_NIF_TERM* tuple;
+    int arity;
+    int type;
+
+    while(enif_get_list_cell(env, opts, &opt, &opts)) {
+        if(!enif_get_tuple(env, opt, &arity, &tuple))
+            continue;
+        if(arity != 2)
+            continue;
+        if(enif_compare(tuple[0], EUV_ATOM_REQ) != 0)
+            continue;
+        if(!enif_get_int(env, tuple[1], &type))
+            continue;
+        if(type > 0 && type < EUV_REQ_MAX)
+            return (euv_req_type) type;
+    }
+
+    return EUV_REQ_UNKNOWN;
+}
+
+
+void
+euv_req_resp(euv_req_t* req, ERL_NIF_TERM resp)
+{
+    ERL_NIF_TERM msg = enif_make_tuple2(req->env, req->ref, resp);
+    enif_send(NULL, &(req->pid), req->env, msg);
+    euv_req_destroy(req);
+}
+
+
+void
+euv_req_resp_ok(euv_req_t* req, ERL_NIF_TERM val)
+{
+    ERL_NIF_TERM resp = euv_make_ok(req->env, val);
+    euv_req_resp(req, resp);
+}
+
+
+void
+euv_req_resp_error(euv_req_t* req, ERL_NIF_TERM val)
+{
+    ERL_NIF_TERM resp = euv_make_error(req->env, val);
+    euv_req_resp(req, resp);
+}
+
+
+ERL_NIF_TERM
+euv_req_uv_error(euv_req_t* req)
+{
+    uv_err_t err = uv_last_error(req->handle->loop->uvl);
+    const char* name = uv_err_name(err);
+    return euv_make_error(req->env, euv_make_atom(req->env, name));
+}
+
+
+ERL_NIF_TERM
+euv_req_errno(euv_req_t* req, int errno)
+{
+    uv_err_t err;
+    err.code = (uv_err_code) errno;
+    const char* name = uv_err_name(err);
+    return euv_make_error(req->env, euv_make_atom(req->env, name));
+}
+
+euv_handle_t*
+euv_handle_init(euv_loop_t* loop, euv_req_t* req)
+{
+    euv_handle_t* ret = enif_alloc_resource(HANDLE_RES, sizeof(euv_req_t));
+    if(ret == NULL)
+        goto error;
+
+    assert(loop != NULL && "invalid loop");
+    assert(req != NULL && "invalid req");
+
+    ret->pid = req->pid;
+    ret->loop = loop;
+    ret->data = NULL;
+    ret->dtor = NULL;
+
+    return ret;
+
+error:
+    if(ret != NULL)
+        enif_release_resource(ret);
+    return NULL;
 }
 
 
@@ -148,6 +244,13 @@ euv_loop_destroy(euv_loop_t* loop)
 }
 
 
+uv_loop_t*
+euv_loop_uvl(euv_loop_t* loop)
+{
+    return loop->uvl;
+}
+
+
 int
 euv_loop_is(euv_loop_t* loop, ErlNifEnv* env, ERL_NIF_TERM name)
 {
@@ -156,6 +259,7 @@ euv_loop_is(euv_loop_t* loop, ErlNifEnv* env, ERL_NIF_TERM name)
         return 0;
     return strncmp(loop->name, buf, 256) == 0;
 }
+
 
 int
 euv_loop_notify(euv_loop_t* loop)
@@ -179,6 +283,23 @@ euv_loop_queue(euv_loop_t* loop, euv_req_t* req)
     if(!euv_loop_notify(loop))
         return 0;
     return 1;
+}
+
+
+void
+euv_loop_handle(euv_loop_t* loop, euv_req_t* req)
+{
+    switch(req->type) {
+
+        case EUV_REQ_FS_STAT:
+            euv_fs_stat(loop, req);
+            return;
+
+        default:
+            fprintf(stderr, "INVALID REQ TYPE\r\n");
+            euv_req_resp_error(req, EUV_ATOM_INVALID_REQ);
+            return;
+    }
 }
 
 
@@ -229,8 +350,7 @@ euv_loop_main(void* arg)
             req = (euv_req_t*) euv_queue_pop(loop->reqs);
             if(req == NULL)
                 break;
-            fprintf(stderr, "REQ: %p\r\n", req);
-            // Handle request
+            euv_loop_handle(loop, req);
         }
 
         uv_run_once(loop->uvl);
