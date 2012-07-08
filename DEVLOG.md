@@ -342,3 +342,17 @@ specifics on where this is actually implemented to see what I might be
 doing that prevents this optimization from kicking in. I'm starting
 to wonder if it has to do with the term copy between environments in
 the NIF before I can send the message.
+
+Sun 7/9 5:33 PM
+---------------
+
+So I've mostly debunked my dumb assumption that sending a ref from a NIF
+would result in the same optimization. This project wasn't a complete
+loss but for it to move forward into something actually useful I'm going
+to have to figure out how to make this thing work. I'm preparing an email
+for erlang-questions that will hopefully help me figure out my issue.
+
+Anyway, SpawnFest was definitely fun. I'll be participating next year with
+hopefully a project that doesn't end in "Oh, well that sucks..."
+
+Special thanks to the organizers and judges for putting things together.
