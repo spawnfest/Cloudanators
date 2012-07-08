@@ -247,3 +247,12 @@ more with testing when I get to that part.
 Next up are the read/write functions so we can actually start moving data
 in and out of this thing.
 
+Sun 7/8 1:04 AM
+---------------
+
+RAWR reference counting. I'm having a hell of a time getting the ErlNifBinary
+pattern right. Its a bit of a weird situation with these handle resources
+and the docs aren't exactly clear on what I need to be freeing vs not.
+
+I'm going to just hit it with a hammer and allocate my own buffers for the
+time being so I can get to the point where this is working.
