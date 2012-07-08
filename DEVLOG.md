@@ -286,3 +286,10 @@ Woot. Pretty sure I found a big source of the ref counting errors where
 I wasn't incref'ing the resource when I got it back from Erlang to match
 the decref when destroying the handle. Obviously fixing that has uncovered
 a different error when I try and read through eof repeatedly.
+
+Sun 7/9 3:22 AM
+---------------
+
+Turns out that the `uv_fs_t` struct occasionally clears its data member which
+was causing havoc. Simple fix to just set that each time I get it back after
+clearing it.
