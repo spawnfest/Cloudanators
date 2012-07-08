@@ -15,7 +15,7 @@
 struct euv_fs_s {
     uv_fs_t         fsreq;
     uv_file         fd;
-    char*           buf;
+    ErlNifBinary    buf;
 };
 
 
@@ -38,6 +38,7 @@ _init_fs_handle(euv_loop_t* loop, euv_req_t* req)
 
     data->fsreq.data = req;
     data->fd = 0;
+    data->buf.data = NULL;
     handle->data = data;
     handle->dtor = euv_fs_dtor;
 
@@ -97,8 +98,8 @@ euv_fs_dtor(euv_loop_t* loop, void* obj)
     if(data->fd > 0)
         uv_fs_close(euv_loop_uvl(loop), &data->fsreq, data->fd, NULL);
     uv_fs_req_cleanup(&data->fsreq);
-    if(data->buf != NULL)
-        enif_free(data->buf);
+    if(data->buf.data != NULL)
+        enif_release_binary(&data->buf);
     enif_free(data);
 }
 
@@ -227,24 +228,23 @@ euv_fs_read_cb(uv_fs_t* fsreq)
 {
     euv_req_t* req = (euv_req_t*) fsreq->data;
     euv_fs_t* data = (euv_fs_t*) req->handle->data;
-    ErlNifBinary bin;
     ERL_NIF_TERM resp;
 
     if(fsreq->result == 0) {
         resp = EUV_ATOM_EOF;
     } else if(fsreq->result > 0) {
-        if(!enif_alloc_binary(fsreq->result, &bin)) {
+        if(!enif_realloc_binary(&data->buf, fsreq->result)) {
+            enif_release_binary(&data->buf);
             resp = euv_make_error(req->env, EUV_ATOM_NOMEM);
         } else {
-            memcpy(bin.data, data->buf, bin.size);
-            resp = enif_make_binary(req->env, &bin);
+            resp = enif_make_binary(req->env, &data->buf);
             resp = euv_make_ok(req->env, resp);
         }
     } else {
+        enif_release_binary(&data->buf);
         resp = euv_req_errno(req, fsreq->errorno);
     }
-    enif_free(data->buf);
-    data->buf = NULL;
+    data->buf.data = NULL;
 
     uv_fs_req_cleanup(fsreq);
     euv_req_resp(req, resp);
@@ -259,7 +259,7 @@ euv_fs_read(euv_loop_t* loop, euv_req_t* req)
     size_t len = 0;
     int64_t offset;
 
-    assert(data->buf == NULL && "stale buffer allocated");
+    assert(data->buf.data == NULL && "stale buffer allocated");
 
     if(!euv_pl_lookup(req->env, req->args, EUV_ATOM_LENGTH, &opt)) {
         euv_req_resp_error(req, EUV_ATOM_INVALID_REQ);
@@ -278,8 +278,7 @@ euv_fs_read(euv_loop_t* loop, euv_req_t* req)
         return;
     }
 
-    data->buf = (char*) enif_alloc(len);
-    if(data->buf == NULL) {
+    if(!enif_alloc_binary(len, &data->buf)) {
         euv_req_resp_error(req, EUV_ATOM_NOMEM);
         return;
     }
@@ -288,8 +287,8 @@ euv_fs_read(euv_loop_t* loop, euv_req_t* req)
                 euv_loop_uvl(loop),
                 &data->fsreq,
                 data->fd,
-                data->buf,
-                len,
+                data->buf.data,
+                data->buf.size,
                 offset,
                 euv_fs_read_cb
             ) != 0)

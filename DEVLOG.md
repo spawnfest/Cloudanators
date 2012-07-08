@@ -299,3 +299,13 @@ Sun 7/9 3:35 AM
 
 Check pointing my work and I'm going to retry the `ErlNifBinary` usage in
 `euv_fs_t` to avoid that unnecessary `memcpy`. Wish me luck.
+
+Sun 7/9 3:33 AM
+---------------
+
+Thanks for the wishes cause it sure as shit helped. Almost got caught up in
+a weird ass error but then realized I was doing a dumb thing trying to create
+an Erlang term from an unitialized binary. Fixed by not being dumb.
+
+Now on to the write implementation and then we'll finally get to compare this
+bad boy against the built-in file module.
