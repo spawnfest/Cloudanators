@@ -95,8 +95,9 @@ void
 euv_fs_dtor(euv_loop_t* loop, void* obj)
 {
     euv_fs_t* data = (euv_fs_t*) obj;
-    if(data->fd > 0)
+    if(data->fd > 0) {
         uv_fs_close(euv_loop_uvl(loop), &data->fsreq, data->fd, NULL);
+    }
     //uv_fs_req_cleanup(&data->fsreq);
     if(data->buf.data != NULL)
         enif_release_binary(&data->buf);
@@ -110,29 +111,37 @@ euv_fs_open_flags(euv_req_t* req)
     ERL_NIF_TERM opts;
     ERL_NIF_TERM opt;
     int ret = 0;
+    int read = 0; 
+    int write = 0;
+    int append = 0;
+    int excl = 0;
 
     if(!euv_pl_lookup(req->env, req->args, EUV_ATOM_OPTS, &opts))
         return ret;
 
     while(enif_get_list_cell(req->env, opts, &opt, &opts)) {
         if(enif_compare(opt, EUV_ATOM_READ) == 0)
-            ret |= O_RDONLY;
+            read = 1;
         else if(enif_compare(opt, EUV_ATOM_WRITE) == 0)
-            ret |= O_WRONLY;
+            write = 1;
         else if(enif_compare(opt, EUV_ATOM_APPEND) == 0)
-            ret |= O_APPEND;
+            append = 1;
         else if(enif_compare(opt, EUV_ATOM_EXCLUSIVE) == 0)
-            ret |= O_EXCL;
+            excl = 1;
     }
 
-    if(ret == 0)
-        return O_RDONLY;
+    if(read && !(write || append)) {
+        ret = O_RDONLY;
+    } else if(write && !append) {
+        ret |= (O_CREAT | O_RDWR);
+    } else if(append) {
+        ret = (O_CREAT | O_RDWR | O_APPEND);
+    } else {
+        ret = O_RDONLY;
+    }
 
-    if(ret & O_WRONLY)
-        ret |= O_CREAT;
-
-    if((ret & O_WRONLY) && !(ret & O_RDONLY))
-        ret |= O_TRUNC;
+    if(excl)
+        ret |= O_EXCL;
 
     return ret;
 }
@@ -147,7 +156,6 @@ euv_fs_open_cb(uv_fs_t* fsreq)
 
     if(fsreq->result > 0) {
         data->fd = (uv_file) fsreq->result;
-        //enif_keep_resource(req->handle);
         resp = enif_make_resource(req->env, req->handle);
         resp = enif_make_tuple2(req->env, EUV_ATOM_EUVFILE, resp);
         resp = euv_make_ok(req->env, resp);
@@ -199,10 +207,12 @@ void
 euv_fs_close_cb(uv_fs_t* fsreq)
 {
     euv_req_t* req = (euv_req_t*) fsreq->data;
+    euv_fs_t* data = (euv_fs_t*) req->handle->data;
     ERL_NIF_TERM resp;
 
     if(fsreq->result == 0) {
         resp = EUV_ATOM_OK;
+        data->fd = 0;
     } else {
         resp = euv_req_errno(req, fsreq->errorno);
     }
@@ -352,7 +362,7 @@ euv_fs_write(euv_loop_t* loop, euv_req_t* req)
                 data->buf.data,
                 data->buf.size,
                 offset,
-                euv_fs_read_cb
+                euv_fs_write_cb
             ) != 0)
         euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
 }

@@ -315,3 +315,16 @@ Sun 7/9 3:56 AM
 
 `euv_file:write/2` is implemented. Time to see how this stacks up against
 the built-in file module.
+
+Sun 7/9 4:50 AM
+---------------
+
+Well ain't that a shitter Looks like the libuv NIF is slightly slower and
+is still showing the same curve of latency dependcy on message queues.
+
+Granted this is on R14B04. I'm done for the night and tomorrow I'll look
+into R15W/E and try again. Could be that the `make_ref()` selective
+receive optimization is disabled somehow. Or perhaps I don't understand
+the specifics?
+
+More follow up tomorrow.

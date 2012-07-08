@@ -29,29 +29,28 @@ run_loop(_Parent, Messages, Bytes) ->
         true -> file:delete(file_name());
         _ -> ok
     end,
-    {ok, Fd} = file:open(file_name(), [read, append, raw, binary]),
+    {ok, Fd} = euv_file:open(file_name(), [read, append]),
     Start = erlang:now(),
     try
         write_loop(Fd, Bytes),
         read_loop(Fd, Bytes, 0)
     after
-        file:close(Fd)
+        euv_file:close(Fd)
     end,
     Length = timer:now_diff(erlang:now(), Start),
-    io:format("~8b :: ~8.2fs~n", [Messages, Length / 1000000]).
+    io:format("~8b :: ~5.2fs~n", [Messages, Length / 1000000]).
 
 
 write_loop(_Fd, Bytes) when Bytes =< 0 ->
     ok;
 write_loop(Fd, Bytes) ->
-    Bin = crypto:rand_bytes(chunk_size()),
-    ok = file:write(Fd, Bin),
+    Sz = chunk_size(),
+    Bin = crypto:rand_bytes(Sz),
+    {ok, Sz} = euv_file:write(Fd, Bin),
     write_loop(Fd, Bytes-chunk_size()).
 
 read_loop(_Fd, Bytes, Pos) when Pos >= Bytes ->
     ok;
 read_loop(Fd, Bytes, Pos) ->
-    {ok, _Bin} = file:pread(Fd, Pos, chunk_size()),
+    {ok, _Bin} = euv_file:pread(Fd, Pos, chunk_size()),
     read_loop(Fd, Bytes, Pos+chunk_size()).
-
-  
