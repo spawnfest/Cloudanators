@@ -309,3 +309,9 @@ an Erlang term from an unitialized binary. Fixed by not being dumb.
 
 Now on to the write implementation and then we'll finally get to compare this
 bad boy against the built-in file module.
+
+Sun 7/9 3:56 AM
+---------------
+
+`euv_file:write/2` is implemented. Time to see how this stacks up against
+the built-in file module.

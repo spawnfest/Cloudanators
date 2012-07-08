@@ -14,6 +14,7 @@ extern ErlNifResourceType* HANDLE_RES;
     XX(BADARG,          "badarg")           \
     XX(BLOCKS,          "blocks")           \
     XX(BLKSIZE,         "blksize")          \
+    XX(BYTES,           "bytes")            \
     XX(CTIME,           "ctime")            \
     XX(DEFAULT,         "default")          \
     XX(DEV,             "dev")              \

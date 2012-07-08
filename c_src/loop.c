@@ -314,6 +314,7 @@ euv_loop_handle(euv_loop_t* loop, euv_req_t* req)
 
         case EUV_REQ_FS_WRITE:
             euv_fs_write(loop, req);
+            return;
 
         case EUV_REQ_FS_STAT:
             euv_fs_stat(loop, req);

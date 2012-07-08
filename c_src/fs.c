@@ -97,7 +97,7 @@ euv_fs_dtor(euv_loop_t* loop, void* obj)
     euv_fs_t* data = (euv_fs_t*) obj;
     if(data->fd > 0)
         uv_fs_close(euv_loop_uvl(loop), &data->fsreq, data->fd, NULL);
-    uv_fs_req_cleanup(&data->fsreq);
+    //uv_fs_req_cleanup(&data->fsreq);
     if(data->buf.data != NULL)
         enif_release_binary(&data->buf);
     enif_free(data);
@@ -127,6 +127,9 @@ euv_fs_open_flags(euv_req_t* req)
 
     if(ret == 0)
         return O_RDONLY;
+
+    if(ret & O_WRONLY)
+        ret |= O_CREAT;
 
     if((ret & O_WRONLY) && !(ret & O_RDONLY))
         ret |= O_TRUNC;
@@ -299,14 +302,59 @@ euv_fs_read(euv_loop_t* loop, euv_req_t* req)
 void
 euv_fs_write_cb(uv_fs_t* fsreq)
 {
+    euv_req_t* req = (euv_req_t*) fsreq->data;
+    euv_fs_t* data = (euv_fs_t*) req->handle->data;
+    ERL_NIF_TERM resp;
 
+    if(fsreq->result >= 0) {
+        resp = enif_make_uint(req->env, fsreq->result);
+        resp = euv_make_ok(req->env, resp);
+    } else {
+        resp = euv_req_errno(req, fsreq->errorno);
+    }
+    data->buf.data = NULL;
+
+    uv_fs_req_cleanup(fsreq);
+    euv_req_resp(req, resp);
 }
 
 
 void
 euv_fs_write(euv_loop_t* loop, euv_req_t* req)
 {
+    euv_fs_t* data = _get_fs_handle(req);
+    ERL_NIF_TERM opt;
+    int64_t offset;
 
+    assert(data->buf.data == NULL && "stale buffer allocated");
+
+    if(!euv_pl_lookup(req->env, req->args, EUV_ATOM_BYTES, &opt)) {
+        euv_req_resp_error(req, EUV_ATOM_INVALID_REQ);
+        return;
+    }
+
+    if(!enif_inspect_iolist_as_binary(req->env, opt, &data->buf)) {
+        euv_req_resp_error(req, EUV_ATOM_BADARG);
+        return;
+    }
+
+    if(!euv_pl_lookup(req->env, req->args, EUV_ATOM_OFFSET, &opt)) {
+        offset = -1;
+    } else if(!enif_get_int64(req->env, opt, (ErlNifSInt64*) &offset)) {
+        euv_req_resp_error(req, EUV_ATOM_BADARG);
+        return;
+    }
+
+    if(uv_fs_write(
+                euv_loop_uvl(loop),
+                &data->fsreq,
+                data->fd,
+                data->buf.data,
+                data->buf.size,
+                offset,
+                euv_fs_read_cb
+            ) != 0)
+        euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
 }
 
 
