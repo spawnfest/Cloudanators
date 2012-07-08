@@ -278,3 +278,11 @@ I'm still not entirely groking what the issue is that I'm having. I'm starting
 to play with `init:restart/0` in the shell and running into issues. I'll
 track that down and see if I can't figure out what's wrong with my
 resource reference counting.
+
+Sun 7/9 3:10 AM
+---------------
+
+Woot. Pretty sure I found a big source of the ref counting errors where
+I wasn't incref'ing the resource when I got it back from Erlang to match
+the decref when destroying the handle. Obviously fixing that has uncovered
+a different error when I try and read through eof repeatedly.
