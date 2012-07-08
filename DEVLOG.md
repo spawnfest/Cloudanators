@@ -222,3 +222,16 @@ Sat 7/7 9:05 PM
 I've got a `lstat` and `utime` written and they're showing the same behavior.
 I can't decide if I should just plow ahead and ignore it for now or sit down
 and write a small test case for libuv.
+
+Sat 7/7 10:03 PM
+----------------
+
+I'm a moron. I was just pulling the data out of ErlNifBinary's which isn't
+null-terminated. A bit of an odd way to present in terms of the buggy
+behaviour but at least it works now.
+
+Now that I have a few basic functions working I'm going to try and setup
+`euv_file:open/2` to return a file handle. The way I wrote these other
+functions should allow me to handle this quite easily but I guess we'll
+see if I'm crazy or not.
+

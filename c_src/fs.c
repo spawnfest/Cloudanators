@@ -35,18 +35,27 @@ _init_fs_handle(euv_loop_t* loop, euv_req_t* req)
 }
 
 
-static const char*
-_get_path(euv_req_t* req, ErlNifBinary* bin)
+static char*
+_get_path(euv_req_t* req)
 {
+    ErlNifBinary bin;
     ERL_NIF_TERM pterm;
+    char* ret;
 
     if(!euv_pl_lookup(req->env, req->args, EUV_ATOM_PATH, &pterm))
         return NULL;
 
-    if(!enif_inspect_iolist_as_binary(req->env, pterm, bin))
+    if(!enif_inspect_iolist_as_binary(req->env, pterm, &bin))
         return NULL;
 
-    return (const char*) bin->data;
+    ret = enif_alloc(bin.size + 1);
+    if(ret == NULL)
+        return NULL;
+
+    memcpy(ret, bin.data, bin.size);
+    ret[bin.size] = 0;
+
+    return ret;
 }
 
 
@@ -115,46 +124,50 @@ euv_fs_stat_cb(uv_fs_t* fsreq)
 void
 euv_fs_stat(euv_loop_t* loop, euv_req_t* req)
 {
-    ErlNifBinary bin;
-    const char* path;
+    char* path = NULL;
 
     if(!_init_fs_handle(loop, req)) {
         euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
-        return;
+        goto done;
     }
 
-    path = _get_path(req, &bin);
+    path = _get_path(req);
     if(path == NULL) {
         euv_req_resp_error(req, EUV_ATOM_INVALID_REQ);
-        return;
+        goto done;
     }
 
     if(uv_fs_stat(euv_loop_uvl(loop),
                 req->handle->data, path, euv_fs_stat_cb) != 0)
         euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
+
+done:
+    if(path != NULL) enif_free(path);
 }
 
 
 void
 euv_fs_lstat(euv_loop_t* loop, euv_req_t* req)
 {
-    ErlNifBinary bin;
-    const char* path;
+    char* path = NULL;
 
     if(!_init_fs_handle(loop, req)) {
         euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
-        return;
+        goto done;
     }
 
-    path = _get_path(req, &bin);
+    path = _get_path(req);
     if(path == NULL) {
         euv_req_resp_error(req, EUV_ATOM_INVALID_REQ);
-        return;
+        goto done;
     }
 
     if(uv_fs_lstat(euv_loop_uvl(loop),
                 req->handle->data, path, euv_fs_stat_cb) != 0)
         euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
+
+done:
+    if(path != NULL) enif_free(path);
 }
 
 
@@ -179,43 +192,45 @@ void
 euv_fs_utime(euv_loop_t* loop, euv_req_t* req)
 {
     ERL_NIF_TERM opt;
-    ErlNifBinary bin;
-    const char* path;
+    char* path = NULL;
     double atime;
     double mtime;
 
     if(!_init_fs_handle(loop, req)) {
         euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
-        return;
+        goto done;
     }
 
-    path = _get_path(req, &bin);
+    path = _get_path(req);
     if(path == NULL) {
         euv_req_resp_error(req, EUV_ATOM_INVALID_REQ);
-        return;
+        goto done;
     }
 
     if(!euv_pl_lookup(req->env, req->args, EUV_ATOM_ATIME, &opt)) {
         euv_req_resp_error(req, EUV_ATOM_INVALID_REQ);
-        return;
+        goto done;
     }
 
     if(!enif_get_double(req->env, opt, &atime)) {
         euv_req_resp_error(req, EUV_ATOM_BADARG);
-        return;
+        goto done;
     }
 
     if(!euv_pl_lookup(req->env, req->args, EUV_ATOM_MTIME, &opt)) {
         euv_req_resp_error(req, EUV_ATOM_INVALID_REQ);
-        return;
+        goto done;
     }
 
     if(!enif_get_double(req->env, opt, &mtime)) {
         euv_req_resp_error(req, EUV_ATOM_BADARG);
-        return;
+        goto done;
     }
 
     if(uv_fs_utime(euv_loop_uvl(loop),
                 req->handle->data, path, atime, mtime, euv_fs_utime_cb) != 0)
         euv_req_resp_error(req, EUV_ATOM_INTERNAL_ERROR);
+
+done:
+    if(path != NULL) enif_free(path);
 }
